@@ -67,19 +67,6 @@ curl -X POST http://localhost:5000/api/parse \
 
 ## Deployment
 
-### Railway.app (Recommended)
-1. Create account at railway.app
-2. Click "New Project" → "Deploy from GitHub"
-3. Add environment variables in Settings
-4. Deploy!
-
-### Render.com
-1. Create account at render.com
-2. New → Web Service
-3. Connect GitHub repository
-4. Add environment variables
-5. Deploy
-
 ## Environment Variables Required for Production
 - OPENAI_API_KEY
 - NODE_ENV=production
