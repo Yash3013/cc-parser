@@ -1,6 +1,92 @@
-# Credit Card Statement Parser - Frontend
+# Frontend - Credit Card Statement Parser
 
-Modern React.js application for parsing and analyzing credit card statements.
+React-based frontend for the Credit Card Statement Parser application.
+
+## Features
+
+- 🎨 Modern, responsive UI with dark mode
+- 📱 Mobile-friendly design
+- 📊 Interactive analytics dashboard
+- 📂 Drag-and-drop file upload
+- 📈 Visual transaction analysis
+- 🔄 Batch processing support
+
+## Tech Stack
+
+- React.js with Vite
+- TailwindCSS for styling
+- Lucide React for icons
+- Axios for API requests
+
+## Setup & Development
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   ```
+   Configure the following variables:
+   ```env
+   REACT_APP_API_URL=http://localhost:5000
+   REACT_APP_MAX_FILE_SIZE=10485760
+   REACT_APP_MAX_FILES=15
+   ```
+
+3. **Start development server**
+   ```bash
+   npm start
+   ```
+
+## Build & Deployment
+
+1. **Production build**
+   ```bash
+   npm run build
+   ```
+
+2. **Vercel Deployment**
+   - Connect to GitHub repository
+   - Configure environment variables
+   - Deploy using Vercel CLI:
+     ```bash
+     vercel
+     ```
+
+## Component Structure
+
+```
+src/
+├── App.jsx              # Main application component
+├── components/          # Reusable UI components
+├── services/           # API integration
+└── styles/            # CSS and styling
+```
+
+## Available Scripts
+
+- `npm start`: Start development server
+- `npm run build`: Create production build
+- `npm test`: Run tests
+- `npm run lint`: Lint code
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## 🚀 Features
 
