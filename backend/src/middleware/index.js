@@ -10,9 +10,9 @@ const setupMiddleware = (app) => {
     app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
   }
   app.use((err,req,res,next) => {
-    console.error(err.stack);
     res.status(err.status || 500).json({
       error: err.message || 'Internal Server Error',
+      message: err.message || 'Internal Server Error',
       ...(config.nodeEnv === 'development' && { stack: err.stack })
     });
   });

@@ -6,6 +6,6 @@ const { parserController, healthController, banksController } = require('../cont
 router.get('/health',healthController.check);
 router.get('/banks',banksController.listBanks);
 router.post('/parse',upload.single('statement'),parserController.parseSingle);
-router.post('/parse-batch',upload.array('statements', 5),parserController.parseBatch);
+router.post('/parse-batch',upload.array('statements', 10),parserController.parseBatch);
 
 module.exports = router;

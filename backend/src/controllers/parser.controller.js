@@ -7,57 +7,48 @@ const fs = require('fs').promises;
 
 const parseSingle = async (req, res) => {
   const startTime = Date.now();
-  const TIMEOUT = 50000; // 50 seconds (to stay within Vercel's 60s limit)
+  const TIMEOUT = 50000;
+  let timedOut = false;
 
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).json({ error: 'No file uploaded', message: 'No file uploaded' });
     }
 
-    // Set up timeout
     const timeout = setTimeout(() => {
-      throw new Error('Processing timeout exceeded');
+      timedOut = true;
     }, TIMEOUT);
 
-    console.log(`Processing: ${req.file.originalname}`);
-    
-    // Extract text with timeout check
     const pdfText = await extractTextFromPDF(req.file.path);
+    if (timedOut) throw new Error('Processing timeout exceeded');
     if (!pdfText) {
       throw new Error('Failed to extract text from PDF');
     }
 
-    // Detect bank with timeout check
     const bank = detectBank(pdfText);
-    console.log(`Detected bank: ${bank}`);
+    if (timedOut) throw new Error('Processing timeout exceeded');
     if (!bank) {
       throw new Error('Unable to detect bank from statement');
     }
 
-    // Parse statement with timeout check
     const parsedData = await parseStatement(pdfText, bank, req.file.path);
+    if (timedOut) throw new Error('Processing timeout exceeded');
     if (!parsedData) {
       throw new Error('Failed to parse statement data');
     }
 
-    // Process transactions if available
     if (parsedData.transactions && parsedData.transactions.length > 0) {
       parsedData.transactions = categorizeTransactions(parsedData.transactions);
     }
 
-    // Generate analytics and validate
     const analytics = generateAnalytics(parsedData);
     const validation = validateExtractedData(parsedData);
 
-    // Clear timeout as processing is complete
     clearTimeout(timeout);
 
-    // Cleanup file
-    await fs.unlink(req.file.path).catch(err => console.error('Cleanup error:', err));
+    await fs.unlink(req.file.path).catch(() => {});
 
-    // Calculate processing time
     const processingTime = Date.now() - startTime;
-    console.log(`Processing completed in ${processingTime}ms`);
 
     res.json({
       success: true,
@@ -70,17 +61,14 @@ const parseSingle = async (req, res) => {
       processingTime
     });
   } catch (err) {
-    console.error('Parsing error:', err);
-    
-    // Cleanup file on error
     if (req.file) {
       await fs.unlink(req.file.path).catch(() => {});
     }
 
-    // Send appropriate error response
     const statusCode = err.message.includes('timeout') ? 504 : 500;
     res.status(statusCode).json({
       error: 'Failed to parse statement',
+      message: err.message,
       details: err.message,
       bank: 'unknown',
       timestamp: new Date().toISOString()
@@ -91,9 +79,8 @@ const parseSingle = async (req, res) => {
 const parseBatch = async (req,res) => {
   try{
     if(!req.files || req.files.length === 0){
-      return res.status(400).json({ error: 'No files uploaded' });
+      return res.status(400).json({ error: 'No files uploaded', message: 'No files uploaded' });
     }
-    console.log(`Batch processing ${req.files.length} files`);
     const results = await Promise.all(
       req.files.map(async (file) => {
         try{
@@ -102,13 +89,12 @@ const parseBatch = async (req,res) => {
           const parsedData = await parseStatement(pdfText,bank,file.path);
           if(parsedData.transactions){
             parsedData.transactions = categorizeTransactions(parsedData.transactions);
-          }  
-
+          }
           const analytics = generateAnalytics(parsedData);
           await fs.unlink(file.path).catch(() => {});
-          return { 
-            filename: file.originalname, 
-            bank, 
+          return {
+            filename: file.originalname,
+            bank,
             data: parsedData,
             analytics,
             success: true
@@ -118,7 +104,8 @@ const parseBatch = async (req,res) => {
           return {
             filename: file.originalname,
             success: false,
-            error: error.message
+            error: err.message,
+            message: err.message
           };
         }
       })
@@ -126,8 +113,8 @@ const parseBatch = async (req,res) => {
 
     const successful = results.filter(r => r.success).length;
     const failed = results.length - successful;
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       results,
       summary: {
         total: results.length,
@@ -136,15 +123,15 @@ const parseBatch = async (req,res) => {
       }
     });
   } catch(err){
-    console.error('Batch processing error:', err);
     if(req.files){
       await Promise.all(
         req.files.map(file => fs.unlink(file.path).catch(() => {}))
       );
     }
-    res.status(500).json({ 
-      error: 'Batch processing failed', 
-      details: err.message 
+    res.status(500).json({
+      error: 'Batch processing failed',
+      message: err.message,
+      details: err.message
     });
   }
 };
