@@ -67,31 +67,81 @@ const CCParserApp = () => {
     setError(null);
     setResults([]);
     
-    try{
-      if(files.length === 1){
+    try {
+      if (files.length === 1) {
         const formData = new FormData();
         formData.append('statement', files[0]);
-        const response = await fetch(`${API_URL}/api/parse`, {
-          method: 'POST',
-          body: formData
-        });
-        if(!response.ok) throw new Error('Parsing failed');
-        const data = await response.json();
-        setResults([{ ...data, filename: files[0].name }]);
-        setActiveTab('results');
-      } else{
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        
+        try {
+          const response = await fetch(`${API_URL}/api/parse`, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              errorData.message || 
+              (response.status === 504 ? 'Processing timeout - The file may be too large or complex' : 
+               response.status === 413 ? 'File is too large' :
+               response.status === 415 ? 'Invalid file format - Please upload a valid PDF' :
+               'Parsing failed')
+            );
+          }
+          
+          const data = await response.json();
+          setResults([{ ...data, filename: files[0].name }]);
+          setActiveTab('results');
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            throw new Error('Request timed out - The file may be too large or complex');
+          }
+          throw err;
+        }
+      } else {
         const formData = new FormData();
         files.forEach(file => formData.append('statements', file));
-        const response = await fetch(`${API_URL}/api/parse-batch`, {
-          method: 'POST',
-          body: formData
-        });
-        if(!response.ok) throw new Error('Batch parsing failed');
-        const data = await response.json();
-        setResults(data.results);
-        setActiveTab('results');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for batch processing
+        
+        try {
+          const response = await fetch(`${API_URL}/api/parse-batch`, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              errorData.message || 
+              (response.status === 504 ? 'Processing timeout - Some files may be too large or complex' :
+               response.status === 413 ? 'Total file size is too large' :
+               response.status === 415 ? 'Invalid file format - Please ensure all files are valid PDFs' :
+               'Batch parsing failed')
+            );
+          }
+          
+          const data = await response.json();
+          setResults(data.results);
+          setActiveTab('results');
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            throw new Error('Request timed out - Some files may be too large or complex');
+          }
+          throw err;
+        }
       }
-    } catch(err){
+    } catch (err) {
       setError(err.message);
     } finally{
       setParsing(false);
